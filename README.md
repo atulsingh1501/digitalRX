@@ -57,6 +57,7 @@ Despite being a "serverless" application, the data structure is logically relati
 - [Routing](#-routing)
 - [Data Storage Schema](#-data-storage-schema)
 - [Getting Started](#-getting-started)
+- [Deployment](#-deployment)
 - [Available Scripts](#-available-scripts)
 
 ---
@@ -595,6 +596,26 @@ All data is stored as JSON strings in `localStorage`.
   "phone": "+91 98765 00000"
 }
 ```
+
+---
+
+## 🚀 Deployment
+
+### Deploying to Vercel
+
+The Digital RX App is optimized for deployment on Vercel.
+
+1.  **Connect Repo**: Import your `digitalRX` repository into Vercel.
+2.  **Configuration**: Vercel will automatically detect Vite. 
+    -   **Build Command**: `npm run build`
+    -   **Output Directory**: `dist`
+3.  **Client-Side Routing**: A `vercel.json` file is included in the root to handle `BrowserRouter` redirects.
+
+### Manual Build
+```bash
+npm run build
+```
+Upload the contents of the `dist/` folder to any static hosting provider (Netlify, GitHub Pages, etc.). *Note: Ensure your provider is configured to redirect all traffic to `index.html` for routing to work.*
 
 ---
 
