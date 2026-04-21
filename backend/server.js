@@ -13,11 +13,14 @@ app.use(express.json());
 const upload = multer({ dest: 'uploads/' });
 
 // ─── State ───────────────────────────────────────────────────────────────────
+// Set DISABLE_WHATSAPP=true in Render/Vercel env vars to skip Puppeteer on cloud
+const WHATSAPP_DISABLED = process.env.DISABLE_WHATSAPP === 'true';
+
 let qrCodeData = null;
-let clientStatus = 'STARTING';
+let clientStatus = WHATSAPP_DISABLED ? 'NOT_AVAILABLE' : 'STARTING';
 let syncPercent = 0;
-let startupTimer = null;   // auto-restart timeout handle
-let currentClient = null;  // always reference through this
+let startupTimer = null;
+let currentClient = null;
 
 const SESSION_PATH = path.join(__dirname, 'whatsapp-session');
 const CACHE_PATH   = path.join(__dirname, '.wwebjs_cache');
@@ -136,7 +139,11 @@ function createAndInitClient() {
 }
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
-createAndInitClient();
+if (WHATSAPP_DISABLED) {
+    console.log('[whatsapp] DISABLED — running in cloud/API-only mode. WhatsApp features unavailable.');
+} else {
+    createAndInitClient();
+}
 
 // ─── Medicine Database ────────────────────────────────────────────────────────
 const MEDICINES = JSON.parse(fs.readFileSync(path.join(__dirname, 'medicines.json'), 'utf-8'));
