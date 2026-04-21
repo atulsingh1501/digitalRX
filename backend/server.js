@@ -1,22 +1,10 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
-const pino = require('pino');
-
-// Baileys — no Chrome/Puppeteer needed, works on any server
-const {
-    default: makeWASocket,
-    DisconnectReason,
-    useMultiFileAuthState,
-    fetchLatestBaileysVersion,
-    makeCacheableSignalKeyStore,
-    MessageMedia,
-    downloadMediaMessage,
-} = require('@whiskeysockets/baileys');
-const { Boom } = require('@hapi/boom');
 
 const app = express();
 app.use(cors());
@@ -24,167 +12,199 @@ app.use(express.json());
 
 const upload = multer({ dest: 'uploads/' });
 
-// ─── State ────────────────────────────────────────────────────────────────────
-let qrCodeData  = null;
-let waSocket    = null;
-let clientStatus = 'STARTING';
-let syncPercent  = 0;
+// ΓöÇΓöÇΓöÇ State ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// Set DISABLE_WHATSAPP=true in Render/Vercel env vars to skip Puppeteer on cloud
+const WHATSAPP_DISABLED = process.env.DISABLE_WHATSAPP === 'true';
 
-const SESSION_DIR = path.join(__dirname, 'wa-session');
+let qrCodeData = null;
+let clientStatus = WHATSAPP_DISABLED ? 'NOT_AVAILABLE' : 'STARTING';
+let syncPercent = 0;
+let startupTimer = null;
+let currentClient = null;
 
-// ─── Baileys Connection ───────────────────────────────────────────────────────
-async function connectToWhatsApp() {
+const SESSION_PATH = path.join(__dirname, 'whatsapp-session');
+const CACHE_PATH   = path.join(__dirname, '.wwebjs_cache');
+
+// ΓöÇΓöÇΓöÇ Helpers ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+function clearSessionFiles() {
+    [SESSION_PATH, CACHE_PATH].forEach(p => {
+        if (fs.existsSync(p)) {
+            try { fs.rmSync(p, { recursive: true, force: true }); } catch (_) {}
+        }
+    });
+}
+
+function cancelStartupTimer() {
+    if (startupTimer) { clearTimeout(startupTimer); startupTimer = null; }
+}
+
+// If no QR or CONNECTED state within 45 seconds ΓåÆ nuke and restart automatically
+function armStartupTimer() {
+    cancelStartupTimer();
+    startupTimer = setTimeout(async () => {
+        if (clientStatus === 'STARTING') {
+            console.warn('[auto-restart] Took too long to start. Clearing session and restarting...');
+            clientStatus = 'RESTARTING';
+            await destroyAndRestart(true);
+        }
+    }, 45000);
+}
+
+async function destroyAndRestart(clearSession = false) {
+    cancelStartupTimer();
+    qrCodeData   = null;
+    syncPercent  = 0;
+    clientStatus = 'RESTARTING';
+
+    if (currentClient) {
+        try { await currentClient.destroy(); } catch (_) {}
+        currentClient = null;
+    }
+
+    if (clearSession) clearSessionFiles();
+
+    // Short delay so Chromium fully releases port/process
+    setTimeout(() => createAndInitClient(), 2000);
+}
+
+// ΓöÇΓöÇΓöÇ Client factory ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+function createAndInitClient() {
     clientStatus = 'STARTING';
     qrCodeData   = null;
+    syncPercent  = 0;
+    armStartupTimer();
 
-    if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
-
-    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
-    const { version } = await fetchLatestBaileysVersion();
-
-    const sock = makeWASocket({
-        version,
-        auth: state,
-        logger: pino({ level: 'silent' }), // suppress noisy logs
-        printQRInTerminal: false,
-        browser: ['Digital Rx', 'Chrome', '1.0'],
-        connectTimeoutMs: 60000,
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000,
-        // Reduce memory usage
-        msgRetryCounterCache: undefined,
-        getMessage: async () => ({ conversation: '' }),
+    const client = new Client({
+        authStrategy: new LocalAuth({ dataPath: SESSION_PATH }),
+        puppeteer: {
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+            ]
+        },
+        // Aggressive timeout so puppeteer doesn't hang forever
+        puppeteerOptions: { timeout: 60000 }
     });
 
-    waSocket = sock;
-
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-
-        if (qr) {
-            // Generate QR as base64 image for the frontend
-            clientStatus = 'WAITING_FOR_SCAN';
-            qrCodeData   = await qrcode.toDataURL(qr);
-            console.log('[whatsapp] QR Code generated.');
-        }
-
-        if (connection === 'close') {
-            const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            console.log('[whatsapp] Connection closed. Reason:', reason);
-
-            qrCodeData = null;
-
-            if (reason === DisconnectReason.loggedOut) {
-                // Phone logged out — clear session and get fresh QR
-                console.log('[whatsapp] Logged out. Clearing session...');
-                clientStatus = 'DISCONNECTED';
-                clearSession();
-                setTimeout(connectToWhatsApp, 2000);
-            } else if (reason === DisconnectReason.connectionReplaced) {
-                console.log('[whatsapp] Connection replaced by another session.');
-                clientStatus = 'DISCONNECTED';
-            } else {
-                // Reconnect for all other reasons
-                clientStatus = 'STARTING';
-                setTimeout(connectToWhatsApp, 3000);
-            }
-        }
-
-        if (connection === 'connecting') {
-            if (clientStatus !== 'WAITING_FOR_SCAN') {
-                clientStatus = 'STARTING';
-            }
-        }
-
-        if (connection === 'open') {
-            clientStatus = 'CONNECTED';
-            qrCodeData   = null;
-            syncPercent  = 0;
-            console.log('[whatsapp] Connected! Ready to send messages.');
-        }
+    client.on('qr', async (qr) => {
+        cancelStartupTimer(); // QR generated ΓÇö no need for auto-restart
+        clientStatus = 'WAITING_FOR_SCAN';
+        qrCodeData   = await qrcode.toDataURL(qr);
+        console.log('[whatsapp] QR Code generated.');
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    client.on('authenticated', () => {
+        cancelStartupTimer();
+        clientStatus = 'AUTHENTICATING';
+        console.log('[whatsapp] Authenticated!');
+    });
 
-    return sock;
+    client.on('loading_screen', (percent) => {
+        clientStatus = 'SYNCING';
+        syncPercent  = percent;
+    });
+
+    client.on('ready', () => {
+        cancelStartupTimer();
+        clientStatus = 'CONNECTED';
+        qrCodeData   = null;
+        syncPercent  = 0;
+        console.log('[whatsapp] Client is ready!');
+    });
+
+    client.on('auth_failure', async (msg) => {
+        console.error('[whatsapp] Auth failure:', msg, 'ΓåÆ clearing session and restarting...');
+        await destroyAndRestart(true); // wipe bad session, get fresh QR
+    });
+
+    client.on('disconnected', async (reason) => {
+        console.warn('[whatsapp] Disconnected:', reason);
+        clientStatus = 'DISCONNECTED';
+        qrCodeData   = null;
+        syncPercent  = 0;
+        // Slight delay then re-init with the existing session (don't clear it)
+        setTimeout(() => createAndInitClient(), 3000);
+    });
+
+    client.initialize().catch(async (err) => {
+        console.error('[whatsapp] initialize() error:', err.message);
+        // Puppeteer crash ΓåÆ clear session and try again
+        await destroyAndRestart(true);
+    });
+
+    currentClient = client;
 }
 
-function clearSession() {
-    try {
-        if (fs.existsSync(SESSION_DIR)) {
-            fs.rmSync(SESSION_DIR, { recursive: true, force: true });
-        }
-    } catch (_) {}
+// ΓöÇΓöÇΓöÇ Boot ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+if (WHATSAPP_DISABLED) {
+    console.log('[whatsapp] DISABLED ΓÇö running in cloud/API-only mode. WhatsApp features unavailable.');
+} else {
+    createAndInitClient();
 }
 
-// Boot WhatsApp
-connectToWhatsApp().catch(err => {
-    console.error('[whatsapp] Boot error:', err.message);
-    setTimeout(connectToWhatsApp, 5000);
-});
-
-// ─── Medicine Database ─────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Medicine Database ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const MEDICINES = JSON.parse(fs.readFileSync(path.join(__dirname, 'medicines.json'), 'utf-8'));
 
+// Search medicines: /api/medicines/search?q=para
 app.get('/api/medicines/search', (req, res) => {
     const q = (req.query.q || '').toLowerCase().trim();
     if (!q || q.length < 2) return res.json([]);
     const results = MEDICINES.filter(m =>
         m.name.toLowerCase().includes(q) ||
         m.category.toLowerCase().includes(q)
-    ).slice(0, 20);
+    ).slice(0, 20); // max 20 results
     res.json(results);
 });
 
+// Get all categories
 app.get('/api/medicines/categories', (req, res) => {
     const cats = [...new Set(MEDICINES.map(m => m.category))].sort();
     res.json(cats);
 });
 
-// ─── WhatsApp Routes ──────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇ Routes ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 app.get('/api/whatsapp/status', (req, res) => {
-    let info = null;
-    if (clientStatus === 'CONNECTED' && waSocket?.user) {
-        info = { pushname: waSocket.user.name, wid: { user: waSocket.user.id.split(':')[0] } };
-    }
-    res.json({ status: clientStatus, qr: qrCodeData, percent: syncPercent, info });
+    res.json({
+        status:  clientStatus,
+        qr:      qrCodeData,
+        percent: syncPercent,
+        info:    clientStatus === 'CONNECTED' ? currentClient?.info : null,
+    });
 });
 
-// Force restart — wipe session and get fresh QR
+// Force-restart: wipes session + cache ΓåÆ fresh QR (called from UI "Force Restart" button)
 app.post('/api/whatsapp/restart', async (req, res) => {
     try {
         console.log('[whatsapp] Force restart requested.');
         res.json({ success: true, message: 'Restarting...' });
-        if (waSocket) { try { await waSocket.logout(); } catch (_) {} }
-        waSocket = null;
-        clientStatus = 'STARTING';
-        qrCodeData   = null;
-        clearSession();
-        setTimeout(connectToWhatsApp, 1500);
+        await destroyAndRestart(true);
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
-// Logout
+// Logout (disconnect session, keep existing session file for reconnect)
 app.post('/api/whatsapp/logout', async (req, res) => {
     try {
-        if (waSocket) { try { await waSocket.logout(); } catch (_) {} }
-        waSocket      = null;
-        clientStatus  = 'DISCONNECTED';
-        qrCodeData    = null;
-        clearSession();
-        setTimeout(connectToWhatsApp, 1500);
+        if (currentClient && clientStatus === 'CONNECTED') {
+            await currentClient.logout();
+        } else {
+            await destroyAndRestart(true);
+        }
+        clientStatus = 'DISCONNECTED';
+        qrCodeData   = null;
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
-// Send text message
 app.post('/api/whatsapp/send-message', async (req, res) => {
     try {
-        if (clientStatus !== 'CONNECTED' || !waSocket) {
+        if (clientStatus !== 'CONNECTED') {
             return res.status(400).json({ success: false, error: 'WhatsApp not connected' });
         }
         const { phone, message } = req.body;
@@ -193,8 +213,7 @@ app.post('/api/whatsapp/send-message', async (req, res) => {
         }
         let cleanPhone = phone.replace(/\D/g, '');
         if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
-        const jid = cleanPhone + '@s.whatsapp.net';
-        await waSocket.sendMessage(jid, { text: message });
+        await currentClient.sendMessage(cleanPhone + '@c.us', message);
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -202,10 +221,9 @@ app.post('/api/whatsapp/send-message', async (req, res) => {
     }
 });
 
-// Send PDF
 app.post('/api/whatsapp/send-pdf', upload.single('pdf'), async (req, res) => {
     try {
-        if (clientStatus !== 'CONNECTED' || !waSocket) {
+        if (clientStatus !== 'CONNECTED') {
             if (req.file) fs.unlinkSync(path.join(__dirname, req.file.path));
             return res.status(400).json({ success: false, error: 'WhatsApp not connected' });
         }
@@ -217,15 +235,10 @@ app.post('/api/whatsapp/send-pdf', upload.single('pdf'), async (req, res) => {
         }
         let cleanPhone = phone.replace(/\D/g, '');
         if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
-        const jid      = cleanPhone + '@s.whatsapp.net';
-        const filePath = path.join(__dirname, file.path);
-        const buffer   = fs.readFileSync(filePath);
-        await waSocket.sendMessage(jid, {
-            document: buffer,
-            mimetype: 'application/pdf',
-            fileName: filename || 'Prescription.pdf',
-            caption: message || '',
-        });
+        const filePath  = path.join(__dirname, file.path);
+        const fileB64   = fs.readFileSync(filePath, { encoding: 'base64' });
+        const media     = new MessageMedia('application/pdf', fileB64, filename || 'Prescription.pdf');
+        await currentClient.sendMessage(cleanPhone + '@c.us', media, { caption: message || '' });
         fs.unlinkSync(filePath);
         res.json({ success: true });
     } catch (err) {
