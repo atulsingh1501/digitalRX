@@ -206,16 +206,16 @@ export default function NewRx() {
     return (
         <Layout>
             {/* Header + Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#1E293B' }}>New Prescription</h1>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '8px', background: 'white', color: '#64748B', border: '1px solid #E2E8F0', cursor: 'pointer', fontWeight: 500, fontSize: '0.875rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: '#1E293B' }}>New Prescription</h1>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '8px', background: 'white', color: '#64748B', border: '1px solid #E2E8F0', cursor: 'pointer', fontWeight: 500, fontSize: '0.875rem' }}>
                         <Printer size={15} /> Print
                     </button>
-                    <button onClick={handleSave} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '8px', background: '#2563EB', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
+                    <button onClick={handleSave} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '8px', background: '#2563EB', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
                         <Save size={15} /> Save Rx
                     </button>
-                    <button onClick={handleWhatsApp} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '8px', background: '#25D366', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
+                    <button onClick={handleWhatsApp} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '8px', background: '#25D366', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
                         <MessageCircle size={15} /> WhatsApp
                     </button>
                 </div>
@@ -223,7 +223,7 @@ export default function NewRx() {
 
             {/* Patient Info */}
             <div style={section}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 90px 130px', gap: '14px' }}>
+                <div className="rx-patient-grid">
                     <div>
                         <label style={lbl}>Phone *</label>
                         <input value={phone} onChange={e => handlePhoneLookup(e.target.value)} placeholder="98765..." style={inp} />
@@ -249,7 +249,7 @@ export default function NewRx() {
 
             {/* Chief Complaints + Diagnosis */}
             <div style={section}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="rx-grid-2">
                     <div>
                         <label style={lbl}>Chief Complaints *</label>
                         <textarea value={complaint} onChange={e => setComplaint(e.target.value)} placeholder="Fever, Cough..." rows={4} style={{ ...inp, resize: 'vertical' }} />
@@ -269,7 +269,8 @@ export default function NewRx() {
                         <Plus size={15} /> Add Medicine
                     </button>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <div className="rx-table-wrap">
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '560px' }}>
                     <thead>
                         <tr style={{ borderBottom: '1px solid #E8EDF2' }}>
                             {['Medicine Name', 'Strength', 'Dose', 'Duration', 'Notes', ''].map(h => (
@@ -280,14 +281,14 @@ export default function NewRx() {
                     <tbody>
                         {medicines.map((med, idx) => (
                             <tr key={med.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                                <td style={{ padding: '8px 10px 8px 0', minWidth: '200px' }}>
+                                <td style={{ padding: '8px 10px 8px 0', minWidth: '180px' }}>
                                     <MedicineSearch
                                         value={med.name}
                                         onSelect={(picked) => updateMedFromSearch(idx, picked)}
                                         style={{ ...inp, padding: '7px 11px' }}
                                     />
                                 </td>
-                                <td style={{ padding: '8px 10px 8px 0', width: '120px' }}>
+                                <td style={{ padding: '8px 10px 8px 0', width: '110px' }}>
                                     {med._strengths && med._strengths.length > 1 ? (
                                         <select value={med.strength} onChange={e => updateMed(idx, 'strength', e.target.value)} style={{ ...inp, padding: '7px 11px' }}>
                                             {med._strengths.map(s => <option key={s}>{s}</option>)}
@@ -296,17 +297,17 @@ export default function NewRx() {
                                         <input value={med.strength} onChange={e => updateMed(idx, 'strength', e.target.value)} placeholder="500mg" style={{ ...inp, padding: '7px 11px' }} />
                                     )}
                                 </td>
-                                <td style={{ padding: '8px 10px 8px 0', width: '110px' }}>
+                                <td style={{ padding: '8px 10px 8px 0', width: '105px' }}>
                                     <select value={med.dose} onChange={e => updateMed(idx, 'dose', e.target.value)} style={{ ...inp, padding: '7px 11px' }}>
                                         {DOSE_OPTIONS.map(d => <option key={d}>{d}</option>)}
                                     </select>
                                 </td>
-                                <td style={{ padding: '8px 10px 8px 0', width: '120px' }}>
+                                <td style={{ padding: '8px 10px 8px 0', width: '110px' }}>
                                     <select value={med.duration} onChange={e => updateMed(idx, 'duration', e.target.value)} style={{ ...inp, padding: '7px 11px' }}>
                                         {DURATION_OPTIONS.map(d => <option key={d}>{d}</option>)}
                                     </select>
                                 </td>
-                                <td style={{ padding: '8px 10px 8px 0', minWidth: '120px' }}>
+                                <td style={{ padding: '8px 10px 8px 0', minWidth: '110px' }}>
                                     <input value={med.notes} onChange={e => updateMed(idx, 'notes', e.target.value)} placeholder="After food" style={{ ...inp, padding: '7px 11px' }} />
                                 </td>
                                 <td style={{ padding: '8px 0', width: '36px' }}>
@@ -318,6 +319,7 @@ export default function NewRx() {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* Advice + Follow Up */}

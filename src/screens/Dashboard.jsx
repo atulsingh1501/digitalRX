@@ -75,28 +75,28 @@ export default function Dashboard() {
 
     return (
         <Layout>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 700, color: '#1E293B' }}>Dashboard</h1>
-                <span style={{ color: '#64748B', fontSize: '0.875rem' }}>{dateStr}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '4px' }}>
+                <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#1E293B' }}>Dashboard</h1>
+                <span style={{ color: '#64748B', fontSize: '0.8rem' }}>{dateStr}</span>
             </div>
 
             {/* Stat Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+            <div className="rx-grid-4" style={{ marginBottom: '20px' }}>
                 {stats.map(({ label, value, Icon, bg, color }) => (
-                    <div key={label} style={{ background: 'white', borderRadius: '12px', padding: '20px', border: '1px solid #E8EDF2' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                            <div style={{ width: '40px', height: '40px', background: bg, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <Icon size={20} color={color} />
+                    <div key={label} style={{ background: 'white', borderRadius: '12px', padding: '16px', border: '1px solid #E8EDF2' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                            <div style={{ width: '36px', height: '36px', background: bg, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Icon size={18} color={color} />
                             </div>
-                            <span style={{ fontSize: '0.82rem', color: '#64748B', fontWeight: 500, lineHeight: 1.3 }}>{label}</span>
+                            <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 500, lineHeight: 1.3 }}>{label}</span>
                         </div>
-                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#1E293B', lineHeight: 1 }}>{value}</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#1E293B', lineHeight: 1 }}>{value}</div>
                     </div>
                 ))}
             </div>
 
             {/* Two-column panel */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div className="rx-grid-2">
                 {/* Recent Patients */}
                 <div style={{ background: 'white', borderRadius: '12px', padding: '20px', border: '1px solid #E8EDF2' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
