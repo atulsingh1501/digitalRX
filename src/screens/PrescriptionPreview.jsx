@@ -5,6 +5,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { storage } from '../services/storage'
+import { API_URL } from '../config'
 
 export default function PrescriptionPreview() {
     const { id } = useParams()
@@ -13,8 +14,6 @@ export default function PrescriptionPreview() {
     const [patient, setPatient] = useState(null)
     const [clinic, setClinic] = useState({})
     const [sendingWa, setSendingWa] = useState(false)
-
-    const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:3001'
 
     useEffect(() => {
         const consultations = storage.getConsultations()

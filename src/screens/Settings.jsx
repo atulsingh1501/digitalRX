@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Save, Trash2, Database, Smartphone, Loader, CheckCircle, PowerOff } from 'lucide-react'
 import Layout from '../components/Layout'
 import { storage } from '../services/storage'
+import { API_URL } from '../config'
 
 export default function Settings() {
     const [clinic, setClinic] = useState({
@@ -12,9 +13,6 @@ export default function Settings() {
     const [waStatus, setWaStatus] = useState('LOADING') // LOADING, DISCONNECTED, WAITING_FOR_SCAN, CONNECTED, ERROR
     const [waQr, setWaQr] = useState(null)
     const [waInfo, setWaInfo] = useState(null)
-
-    const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:3001'
-
     useEffect(() => {
         const info = storage.getClinicInfo()
         setClinic(prev => ({ ...prev, ...info }))

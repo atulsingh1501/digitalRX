@@ -30,9 +30,13 @@ function createWindow() {
 }
 
 function startBackend() {
-    backendProcess = spawn('node', ['server.js'], {
-        cwd: path.join(__dirname, 'backend'),
-        stdio: 'inherit' // Pipe backend console output to the main terminal
+    const isDev = process.env.NODE_ENV === 'development';
+    const backendPath = isDev 
+        ? path.join(__dirname, 'backend', 'server.js')
+        : path.join(app.getAppPath(), 'backend', 'server.js');
+
+    backendProcess = spawn('node', [backendPath], {
+        stdio: 'inherit'
     });
 
     backendProcess.on('close', (code) => {

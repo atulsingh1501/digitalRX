@@ -3,14 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { Users, CalendarClock, FileText, TrendingUp, TrendingDown, Plus, MessageCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import { storage } from '../services/storage'
+import { API_URL } from '../config'
 
 export default function Dashboard() {
     const navigate = useNavigate()
     const patients = storage.getPatients()
     const allConsults = storage.getConsultations()
-
-    const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:3001'
-
     const today = new Date()
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
     const todayEnd = todayStart + 86400000
