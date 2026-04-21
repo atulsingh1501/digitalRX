@@ -6,16 +6,15 @@ const fs = require('fs');
 const path = require('path');
 const pino = require('pino');
 
-// Baileys — no Chrome/Puppeteer needed, works on any server
+// Use the official new package name
+const makeWASocket = require('baileys').default;
 const {
-    default: makeWASocket,
     DisconnectReason,
     useMultiFileAuthState,
     fetchLatestBaileysVersion,
-    makeCacheableSignalKeyStore,
-    MessageMedia,
-    downloadMediaMessage,
-} = require('@whiskeysockets/baileys');
+    delay,
+    Browsers,
+} = require('baileys');
 const { Boom } = require('@hapi/boom');
 
 const app = express();
@@ -25,103 +24,115 @@ app.use(express.json());
 const upload = multer({ dest: 'uploads/' });
 
 // ─── State ────────────────────────────────────────────────────────────────────
-let qrCodeData  = null;
-let waSocket    = null;
+let qrCodeData   = null;
+let qrTimestamp  = 0;
 let clientStatus = 'STARTING';
-let syncPercent  = 0;
+let waSocket     = null;
+let isConnecting = false;
 
 const SESSION_DIR = path.join(__dirname, 'wa-session');
 
-// ─── Baileys Connection ───────────────────────────────────────────────────────
-async function connectToWhatsApp() {
-    clientStatus = 'STARTING';
-    qrCodeData   = null;
-
-    if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
-
-    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
-    const { version } = await fetchLatestBaileysVersion();
-
-    const sock = makeWASocket({
-        version,
-        auth: state,
-        logger: pino({ level: 'silent' }), // suppress noisy logs
-        printQRInTerminal: false,
-        browser: ['Digital Rx', 'Chrome', '1.0'],
-        connectTimeoutMs: 60000,
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000,
-        // Reduce memory usage
-        msgRetryCounterCache: undefined,
-        getMessage: async () => ({ conversation: '' }),
-    });
-
-    waSocket = sock;
-
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-
-        if (qr) {
-            // Generate QR as base64 image for the frontend
-            clientStatus = 'WAITING_FOR_SCAN';
-            qrCodeData   = await qrcode.toDataURL(qr);
-            console.log('[whatsapp] QR Code generated.');
-        }
-
-        if (connection === 'close') {
-            const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-            console.log('[whatsapp] Connection closed. Reason:', reason);
-
-            qrCodeData = null;
-
-            if (reason === DisconnectReason.loggedOut) {
-                // Phone logged out — clear session and get fresh QR
-                console.log('[whatsapp] Logged out. Clearing session...');
-                clientStatus = 'DISCONNECTED';
-                clearSession();
-                setTimeout(connectToWhatsApp, 2000);
-            } else if (reason === DisconnectReason.connectionReplaced) {
-                console.log('[whatsapp] Connection replaced by another session.');
-                clientStatus = 'DISCONNECTED';
-            } else {
-                // Reconnect for all other reasons
-                clientStatus = 'STARTING';
-                setTimeout(connectToWhatsApp, 3000);
-            }
-        }
-
-        if (connection === 'connecting') {
-            if (clientStatus !== 'WAITING_FOR_SCAN') {
-                clientStatus = 'STARTING';
-            }
-        }
-
-        if (connection === 'open') {
-            clientStatus = 'CONNECTED';
-            qrCodeData   = null;
-            syncPercent  = 0;
-            console.log('[whatsapp] Connected! Ready to send messages.');
-        }
-    });
-
-    sock.ev.on('creds.update', saveCreds);
-
-    return sock;
-}
-
 function clearSession() {
     try {
-        if (fs.existsSync(SESSION_DIR)) {
-            fs.rmSync(SESSION_DIR, { recursive: true, force: true });
-        }
+        if (fs.existsSync(SESSION_DIR)) fs.rmSync(SESSION_DIR, { recursive: true, force: true });
     } catch (_) {}
 }
 
-// Boot WhatsApp
-connectToWhatsApp().catch(err => {
-    console.error('[whatsapp] Boot error:', err.message);
-    setTimeout(connectToWhatsApp, 5000);
-});
+async function connectToWhatsApp(clearFirst = false) {
+    if (isConnecting) return;
+    isConnecting = true;
+    if (clearFirst) clearSession();
+
+    clientStatus = 'STARTING';
+    qrCodeData   = null;
+
+    try {
+        if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
+
+        const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+        const { version } = await fetchLatestBaileysVersion();
+        console.log('[whatsapp] Using WA version:', version.join('.'));
+
+        const sock = makeWASocket({
+            version,
+            auth: state,
+            logger: pino({ level: 'silent' }),
+            browser: Browsers.macOS('Desktop'),
+            connectTimeoutMs: 60_000,
+            defaultQueryTimeoutMs: 60_000,
+            keepAliveIntervalMs: 15_000,
+            syncFullHistory: false,
+            markOnlineOnConnect: false,
+            generateHighQualityLinkPreview: false,
+            getMessage: async () => undefined,
+        });
+
+        waSocket = sock;
+
+        sock.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect, qr } = update;
+
+            if (qr) {
+                try {
+                    qrCodeData   = await qrcode.toDataURL(qr);
+                    qrTimestamp  = Date.now();
+                    clientStatus = 'WAITING_FOR_SCAN';
+                    console.log('[whatsapp] Fresh QR generated at', new Date().toISOString());
+                } catch (e) {
+                    console.error('[whatsapp] QR error:', e.message);
+                }
+            }
+
+            if (connection === 'connecting') {
+                console.log('[whatsapp] Connecting...');
+                if (clientStatus !== 'WAITING_FOR_SCAN') clientStatus = 'STARTING';
+            }
+
+            if (connection === 'open') {
+                clientStatus = 'CONNECTED';
+                qrCodeData   = null;
+                isConnecting = false;
+                console.log('[whatsapp] ✅ Connected! User:', sock.user?.id);
+            }
+
+            if (connection === 'close') {
+                isConnecting = false;
+                const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
+                const errMsg = lastDisconnect?.error?.message || '';
+                console.log('[whatsapp] Closed. Code:', statusCode, errMsg);
+
+                if (statusCode === DisconnectReason.loggedOut ||
+                    statusCode === DisconnectReason.multideviceMismatch) {
+                    console.log('[whatsapp] Logged out — clearing session.');
+                    clientStatus = 'DISCONNECTED';
+                    qrCodeData   = null;
+                    clearSession();
+                    await delay(2000);
+                    connectToWhatsApp(false);
+                } else if (statusCode === DisconnectReason.connectionReplaced) {
+                    console.log('[whatsapp] Connection replaced.');
+                    clientStatus = 'DISCONNECTED';
+                } else {
+                    clientStatus = 'STARTING';
+                    qrCodeData   = null;
+                    await delay(4000);
+                    connectToWhatsApp(false);
+                }
+            }
+        });
+
+        sock.ev.on('creds.update', saveCreds);
+
+    } catch (err) {
+        console.error('[whatsapp] Error:', err.message);
+        isConnecting = false;
+        clientStatus = 'STARTING';
+        await delay(5000);
+        connectToWhatsApp(false);
+    }
+}
+
+connectToWhatsApp();
 
 // ─── Medicine Database ─────────────────────────────────────────────────────────
 const MEDICINES = JSON.parse(fs.readFileSync(path.join(__dirname, 'medicines.json'), 'utf-8'));
@@ -130,114 +141,91 @@ app.get('/api/medicines/search', (req, res) => {
     const q = (req.query.q || '').toLowerCase().trim();
     if (!q || q.length < 2) return res.json([]);
     const results = MEDICINES.filter(m =>
-        m.name.toLowerCase().includes(q) ||
-        m.category.toLowerCase().includes(q)
+        m.name.toLowerCase().includes(q) || m.category.toLowerCase().includes(q)
     ).slice(0, 20);
     res.json(results);
 });
 
 app.get('/api/medicines/categories', (req, res) => {
-    const cats = [...new Set(MEDICINES.map(m => m.category))].sort();
-    res.json(cats);
+    res.json([...new Set(MEDICINES.map(m => m.category))].sort());
 });
 
 // ─── WhatsApp Routes ──────────────────────────────────────────────────────────
 app.get('/api/whatsapp/status', (req, res) => {
+    const qrAge = qrCodeData ? Math.floor((Date.now() - qrTimestamp) / 1000) : null;
     let info = null;
     if (clientStatus === 'CONNECTED' && waSocket?.user) {
-        info = { pushname: waSocket.user.name, wid: { user: waSocket.user.id.split(':')[0] } };
+        info = { pushname: waSocket.user.name, wid: { user: waSocket.user.id?.split(':')[0] } };
     }
-    res.json({ status: clientStatus, qr: qrCodeData, percent: syncPercent, info });
+    res.json({ status: clientStatus, qr: qrCodeData, qrAge, percent: 0, info });
 });
 
-// Force restart — wipe session and get fresh QR
 app.post('/api/whatsapp/restart', async (req, res) => {
     try {
-        console.log('[whatsapp] Force restart requested.');
         res.json({ success: true, message: 'Restarting...' });
-        if (waSocket) { try { await waSocket.logout(); } catch (_) {} }
-        waSocket = null;
-        clientStatus = 'STARTING';
-        qrCodeData   = null;
+        if (waSocket) { try { waSocket.end(undefined); } catch (_) {} }
+        waSocket = null; isConnecting = false;
+        clientStatus = 'STARTING'; qrCodeData = null;
         clearSession();
-        setTimeout(connectToWhatsApp, 1500);
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
+        await delay(1500);
+        connectToWhatsApp(false);
+    } catch (_) {}
 });
 
-// Logout
 app.post('/api/whatsapp/logout', async (req, res) => {
     try {
-        if (waSocket) { try { await waSocket.logout(); } catch (_) {} }
-        waSocket      = null;
-        clientStatus  = 'DISCONNECTED';
-        qrCodeData    = null;
+        if (waSocket && clientStatus === 'CONNECTED') {
+            try { await waSocket.logout(); } catch (_) {}
+        } else if (waSocket) {
+            try { waSocket.end(undefined); } catch (_) {}
+        }
+        waSocket = null; isConnecting = false;
+        clientStatus = 'DISCONNECTED'; qrCodeData = null;
         clearSession();
-        setTimeout(connectToWhatsApp, 1500);
         res.json({ success: true });
+        await delay(1500);
+        connectToWhatsApp(false);
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
-// Send text message
 app.post('/api/whatsapp/send-message', async (req, res) => {
     try {
-        if (clientStatus !== 'CONNECTED' || !waSocket) {
+        if (clientStatus !== 'CONNECTED' || !waSocket)
             return res.status(400).json({ success: false, error: 'WhatsApp not connected' });
-        }
-        const { phone, message } = req.body;
-        if (!phone || !message) {
-            return res.status(400).json({ success: false, error: 'Phone and message are required' });
-        }
-        let cleanPhone = phone.replace(/\D/g, '');
-        if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
-        const jid = cleanPhone + '@s.whatsapp.net';
-        await waSocket.sendMessage(jid, { text: message });
+        let p = (req.body.phone || '').replace(/\D/g, '');
+        if (p.length === 10) p = '91' + p;
+        await waSocket.sendMessage(p + '@s.whatsapp.net', { text: req.body.message });
         res.json({ success: true });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
-// Send PDF
 app.post('/api/whatsapp/send-pdf', upload.single('pdf'), async (req, res) => {
+    const filePath = req.file ? path.join(__dirname, req.file.path) : null;
     try {
         if (clientStatus !== 'CONNECTED' || !waSocket) {
-            if (req.file) fs.unlinkSync(path.join(__dirname, req.file.path));
+            if (filePath) fs.unlinkSync(filePath);
             return res.status(400).json({ success: false, error: 'WhatsApp not connected' });
         }
-        const { phone, message, filename } = req.body;
-        const file = req.file;
-        if (!phone || !file) {
-            if (req.file) fs.unlinkSync(path.join(__dirname, req.file.path));
-            return res.status(400).json({ success: false, error: 'Phone and PDF are required' });
-        }
-        let cleanPhone = phone.replace(/\D/g, '');
-        if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
-        const jid      = cleanPhone + '@s.whatsapp.net';
-        const filePath = path.join(__dirname, file.path);
-        const buffer   = fs.readFileSync(filePath);
-        await waSocket.sendMessage(jid, {
+        let p = (req.body.phone || '').replace(/\D/g, '');
+        if (p.length === 10) p = '91' + p;
+        const buffer = fs.readFileSync(filePath);
+        await waSocket.sendMessage(p + '@s.whatsapp.net', {
             document: buffer,
             mimetype: 'application/pdf',
-            fileName: filename || 'Prescription.pdf',
-            caption: message || '',
+            fileName: req.body.filename || 'Prescription.pdf',
+            caption: req.body.message || '',
         });
         fs.unlinkSync(filePath);
         res.json({ success: true });
     } catch (err) {
-        console.error(err);
-        if (req.file && fs.existsSync(path.join(__dirname, req.file.path))) {
-            fs.unlinkSync(path.join(__dirname, req.file.path));
-        }
+        if (filePath && fs.existsSync(filePath)) fs.unlinkSync(filePath);
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[server] Backend running on http://0.0.0.0:${PORT}`);
-});
+app.listen(PORT, '0.0.0.0', () => console.log(`[server] Running on http://0.0.0.0:${PORT}`));

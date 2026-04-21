@@ -320,3 +320,97 @@ textarea:focus {
   background: #CBD5E1;
   border-radius: 10px;
 }
+
+/* ══════════════════════════════════════════
+   RESPONSIVE UTILITIES
+══════════════════════════════════════════ */
+
+/* Responsive grid helpers */
+.rx-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.rx-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+@media (max-width: 768px) {
+    .rx-grid-2 { grid-template-columns: 1fr; gap: 10px; }
+    .rx-grid-4 { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
+@media (max-width: 480px) {
+    .rx-grid-4 { grid-template-columns: 1fr; }
+}
+
+/* Responsive table → card view on mobile */
+.rx-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Stack flex rows on mobile */
+.rx-flex-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+@media (max-width: 640px) {
+    .rx-flex-row { flex-direction: column; }
+}
+
+/* Hide on mobile */
+@media (max-width: 768px) {
+    .hide-mobile { display: none !important; }
+}
+
+/* Hide on desktop */
+@media (min-width: 769px) {
+    .hide-desktop { display: none !important; }
+}
+
+/* Full width on mobile */
+@media (max-width: 640px) {
+    .full-mobile { width: 100% !important; max-width: 100% !important; }
+}
+
+/* Animate spin (used by Loader icon) */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.animate-spin { animation: spin 1s linear infinite; }
+
+/* Touch-friendly tap targets */
+@media (max-width: 768px) {
+    button, a { min-height: 40px; }
+}
+
+/* Patient info grid in NewRx */
+.rx-patient-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr 90px 130px;
+    gap: 14px;
+}
+@media (max-width: 640px) {
+    .rx-patient-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+}
+@media (max-width: 400px) {
+    .rx-patient-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Settings form 2-col grid */
+.rx-settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 640px) {
+    .rx-settings-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}

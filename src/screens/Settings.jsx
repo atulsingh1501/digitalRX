@@ -10,10 +10,11 @@ export default function Settings() {
         name: '', phone: '', address: '', email: '', whatsapp: ''
     })
 
-    const [waStatus, setWaStatus] = useState('LOADING') // LOADING, DISCONNECTED, WAITING_FOR_SCAN, AUTHENTICATING, SYNCING, CONNECTED, ERROR
+    const [waStatus, setWaStatus] = useState('LOADING')
     const [waQr, setWaQr] = useState(null)
     const [waInfo, setWaInfo] = useState(null)
     const [waPercent, setWaPercent] = useState(0)
+    const [qrAge, setQrAge] = useState(null)
     useEffect(() => {
         const info = storage.getClinicInfo()
         setClinic(prev => ({ ...prev, ...info }))
@@ -33,6 +34,7 @@ export default function Settings() {
             setWaQr(data.qr)
             setWaInfo(data.info)
             setWaPercent(data.percent || 0)
+            setQrAge(data.qrAge || null)
         } catch (err) {
             setWaStatus('ERROR')
         }
@@ -152,11 +154,21 @@ export default function Settings() {
                     )}
                     {waStatus === 'WAITING_FOR_SCAN' && waQr && (
                         <>
-                            <div style={{ width: '160px', height: '160px', borderRadius: '8px', overflow: 'hidden', background: '#F8FAFC', padding: '10px', border: '1px solid #E2E8F0' }}>
+                            <div style={{ width: '160px', height: '160px', borderRadius: '8px', overflow: 'hidden', background: '#F8FAFC', padding: '10px', border: `2px solid ${qrAge > 55 ? '#EF4444' : '#E2E8F0'}` }}>
                                 <img src={waQr} alt="WhatsApp QR Code" style={{ width: '100%', height: '100%', display: 'block' }} />
                             </div>
                             <div>
                                 <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem', fontWeight: 600, color: '#1E293B' }}>Link your Doctor WhatsApp</h3>
+                                {qrAge > 55 && (
+                                    <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '8px 12px', marginBottom: '10px', fontSize: '0.82rem', color: '#DC2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        ⚠️ QR is expiring soon! A new QR will appear automatically — do NOT scan this one.
+                                    </div>
+                                )}
+                                {qrAge !== null && qrAge <= 55 && (
+                                    <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '8px', padding: '6px 12px', marginBottom: '10px', fontSize: '0.8rem', color: '#16A34A', fontWeight: 500 }}>
+                                        ✅ QR is fresh — scan now! ({55 - qrAge}s remaining)
+                                    </div>
+                                )}
                                 <ol style={{ margin: 0, paddingLeft: '20px', color: '#64748B', fontSize: '0.875rem', lineHeight: 1.6, fontWeight: 500 }}>
                                     <li>Open WhatsApp on your phone</li>
                                     <li>Tap Menu or Settings and select <b>Linked Devices</b></li>
