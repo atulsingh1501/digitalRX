@@ -24,3 +24,13 @@ backend/uploads
 *.njsproj
 *.sln
 *.sw?
+
+# Electron build artifacts
+dist_electron
+release
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.zip

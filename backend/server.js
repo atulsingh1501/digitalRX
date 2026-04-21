@@ -126,7 +126,7 @@ app.post('/api/whatsapp/send-pdf', upload.single('pdf'), async (req, res) => {
     }
 });
 
-const PORT = 3001;
-app.listen(PORT, '127.0.0.1', () => {
-    console.log(`Backend running on http://127.0.0.1:${PORT}`);
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend running on http://0.0.0.0:${PORT}`);
 });
