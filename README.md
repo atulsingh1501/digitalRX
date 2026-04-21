@@ -65,7 +65,7 @@ DOCTOR-APP-master/
 
 - [Node.js](https://nodejs.org/) v18 or higher
 - npm (comes with Node.js)
-- Google Chrome installed (required by whatsapp-web.js for the headless browser)
+- ✅ **No Chrome/browser required** — WhatsApp now uses `baileys` (WebSocket-based, lightweight)
 
 ---
 
@@ -127,15 +127,28 @@ Navigate to: **[http://localhost:5173](http://localhost:5173)**
 
 ## 📱 WhatsApp Setup
 
-The WhatsApp integration uses `whatsapp-web.js` to link the doctor's WhatsApp account and send messages silently in the background (no WhatsApp Web window needed).
+The WhatsApp integration uses **`baileys`** — a lightweight WebSocket-based library that connects directly to WhatsApp without needing a Chrome/Puppeteer browser. Works on both **local machines** and **cloud servers** like Render.
 
 1. Start the backend server (`node server.js`)
 2. Go to **Settings → Backend WhatsApp Connection** in the app
-3. A QR code will appear — scan it with your WhatsApp phone
-4. After scanning, wait for the **"Syncing messages..."** phase to complete
-5. Once connected, the app will show **"WhatsApp Connected Successfully"**
+3. A QR code will appear — a **freshness timer** shows how many seconds are left before it expires
+4. **Scan the QR within 60 seconds** using WhatsApp → Linked Devices → Link a Device
+5. Once scanned, the app will show **"WhatsApp Connected Successfully"**
 
-> ⚠️ **Note:** The first-time sync can take 30–90 seconds depending on your chat history size. Subsequent startups are instant as the session is cached.
+> 💡 **QR Freshness Timer:** A green banner shows `✅ QR is fresh — scan now! (54s remaining)`. If you miss it, a new QR is generated automatically.
+
+> ⚠️ **Force Restart Button:** If the QR is stuck loading, click the **"Force Restart"** button next to the spinner to wipe the session and get a fresh QR instantly.
+
+### 🏠 Local vs ☁️ Cloud WhatsApp
+
+| | Local (`localhost`) | Cloud (Render free) |
+|---|---|---|
+| QR generation speed | ✅ ~2 seconds | ✅ ~5 seconds |
+| Session persistence | ✅ Permanent on disk | ⚠️ Resets on redeploy or sleep |
+| Requires Chrome? | ❌ No | ❌ No |
+| WhatsApp delivery | ✅ Works | ✅ Works (while server is awake) |
+
+> 💡 On Render free tier, the server sleeps after 15 min of inactivity. When it wakes up, you may need to scan a new QR code.
 
 ---
 
@@ -196,11 +209,9 @@ The backend runs on `http://localhost:3001` by default.
 
 | Status | Meaning |
 |---|---|
-| `STARTING` | Client is initializing |
-| `WAITING_FOR_SCAN` | QR code is ready, waiting for phone scan |
-| `AUTHENTICATING` | QR scanned, verifying credentials |
-| `SYNCING` | Downloading message history (shows `percent`) |
-| `CONNECTED` | Fully linked and ready to send |
+| `STARTING` | Client is initializing, connecting to WhatsApp servers |
+| `WAITING_FOR_SCAN` | QR code is ready — scan within 60 seconds |
+| `CONNECTED` | Fully linked and ready to send prescriptions |
 | `DISCONNECTED` | Session was logged out or expired |
 | `RESTARTING` | Force-restart in progress, new QR coming soon |
 
@@ -266,8 +277,10 @@ The output installer will be placed in the `dist_electron/` folder.
 | **Styling** | Vanilla CSS (inline styles) |
 | **Icons** | Lucide React |
 | **PDF** | jsPDF + html2canvas |
+| **QR Code** | qrcode.react (prescription footer) |
 | **Backend** | Node.js, Express.js |
-| **WhatsApp** | whatsapp-web.js (Puppeteer-based) |
+| **WhatsApp** | `baileys` (WebSocket-based, no Chrome needed) |
+| **Medicine DB** | Local JSON (200+ medicines, no external API) |
 | **Storage** | Browser localStorage |
 | **Desktop** | Electron |
 
