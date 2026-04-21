@@ -14,8 +14,10 @@ function MedicineSearch({ value, onSelect, style }) {
     const [results, setResults] = useState([])
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 })
     const debounceRef = useRef(null)
     const wrapRef = useRef(null)
+    const inputRef = useRef(null)
 
     // Sync if parent resets
     useEffect(() => { setQuery(value || '') }, [value])
@@ -27,6 +29,13 @@ function MedicineSearch({ value, onSelect, style }) {
         return () => document.removeEventListener('mousedown', handler)
     }, [])
 
+    // Recalculate dropdown position when opened
+    const calcPos = () => {
+        if (!inputRef.current) return
+        const rect = inputRef.current.getBoundingClientRect()
+        setDropPos({ top: rect.bottom + window.scrollY + 2, left: rect.left + window.scrollX, width: rect.width })
+    }
+
     const search = useCallback((q) => {
         clearTimeout(debounceRef.current)
         if (q.length < 2) { setResults([]); setOpen(false); return }
@@ -36,7 +45,7 @@ function MedicineSearch({ value, onSelect, style }) {
                 const res = await fetch(`${API_URL}/api/medicines/search?q=${encodeURIComponent(q)}`)
                 const data = await res.json()
                 setResults(data)
-                setOpen(data.length > 0)
+                if (data.length > 0) { calcPos(); setOpen(true) } else setOpen(false)
             } catch (_) { setResults([]) }
             finally { setLoading(false) }
         }, 250)
@@ -44,7 +53,7 @@ function MedicineSearch({ value, onSelect, style }) {
 
     const handleChange = (e) => {
         setQuery(e.target.value)
-        onSelect({ name: e.target.value, strength: '', notes: '' }) // keep typing
+        onSelect({ name: e.target.value, strength: '', notes: '' })
         search(e.target.value)
     }
 
@@ -58,9 +67,10 @@ function MedicineSearch({ value, onSelect, style }) {
         <div ref={wrapRef} style={{ position: 'relative' }}>
             <div style={{ position: 'relative' }}>
                 <input
+                    ref={inputRef}
                     value={query}
                     onChange={handleChange}
-                    onFocus={() => query.length >= 2 && results.length > 0 && setOpen(true)}
+                    onFocus={() => { if (query.length >= 2 && results.length > 0) { calcPos(); setOpen(true) } }}
                     placeholder="Type medicine name..."
                     autoComplete="off"
                     style={{ ...style, paddingRight: '28px' }}
@@ -68,10 +78,19 @@ function MedicineSearch({ value, onSelect, style }) {
                 <Search size={13} style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
             </div>
             {open && (
+                /* Fixed portal — escapes any overflow:hidden/auto parent */
                 <div style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 999,
-                    background: 'white', border: '1px solid #E2E8F0', borderRadius: '8px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '260px', overflowY: 'auto', marginTop: '2px'
+                    position: 'fixed',
+                    top: dropPos.top,
+                    left: dropPos.left,
+                    width: Math.max(dropPos.width, 260),
+                    zIndex: 9999,
+                    background: 'white',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
+                    maxHeight: '260px',
+                    overflowY: 'auto',
                 }}>
                     {loading && <div style={{ padding: '10px 14px', fontSize: '0.8rem', color: '#94A3B8' }}>Searching...</div>}
                     {!loading && results.map((med, i) => (
@@ -96,6 +115,7 @@ function MedicineSearch({ value, onSelect, style }) {
         </div>
     )
 }
+
 
 export default function NewRx() {
     const navigate = useNavigate()

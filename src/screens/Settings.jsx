@@ -128,9 +128,9 @@ export default function Settings() {
                         </div>
                     )}
                     {(waStatus === 'STARTING' || waStatus === 'DISCONNECTED') && !waQr && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '10px', flexWrap: 'wrap' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '0.9rem', fontWeight: 500 }}>
-                                <Loader size={18} className="animate-spin" /> Starting WhatsApp Core... This can take up to 20 seconds.
+                                <Loader size={18} className="animate-spin" /> Starting WhatsApp... This can take ~20 seconds.
                             </div>
                             <button onClick={handleForceRestart} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', background: '#FFF7ED', color: '#EA580C', border: '1px solid #FED7AA', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', flexShrink: 0 }}>
                                 <RefreshCw size={14} /> Force Restart
@@ -153,43 +153,44 @@ export default function Settings() {
                         </div>
                     )}
                     {waStatus === 'WAITING_FOR_SCAN' && waQr && (
-                        <>
-                            <div style={{ width: '160px', height: '160px', borderRadius: '8px', overflow: 'hidden', background: '#F8FAFC', padding: '10px', border: `2px solid ${qrAge > 55 ? '#EF4444' : '#E2E8F0'}` }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
+                            {/* QR Code — centered, big enough to scan */}
+                            <div style={{ width: '190px', height: '190px', borderRadius: '12px', overflow: 'hidden', background: '#F8FAFC', padding: '10px', border: `2px solid ${qrAge > 55 ? '#EF4444' : '#22C55E'}`, flexShrink: 0 }}>
                                 <img src={waQr} alt="WhatsApp QR Code" style={{ width: '100%', height: '100%', display: 'block' }} />
                             </div>
-                            <div>
-                                <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem', fontWeight: 600, color: '#1E293B' }}>Link your Doctor WhatsApp</h3>
+                            <div style={{ width: '100%' }}>
+                                <h3 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 600, color: '#1E293B', textAlign: 'center' }}>Link your Doctor WhatsApp</h3>
                                 {qrAge > 55 && (
                                     <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '8px 12px', marginBottom: '10px', fontSize: '0.82rem', color: '#DC2626', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        ⚠️ QR is expiring soon! A new QR will appear automatically — do NOT scan this one.
+                                        ⚠️ QR expiring! A new one will appear automatically.
                                     </div>
                                 )}
                                 {qrAge !== null && qrAge <= 55 && (
-                                    <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '8px', padding: '6px 12px', marginBottom: '10px', fontSize: '0.8rem', color: '#16A34A', fontWeight: 500 }}>
+                                    <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '8px', padding: '6px 12px', marginBottom: '10px', fontSize: '0.8rem', color: '#16A34A', fontWeight: 500, textAlign: 'center' }}>
                                         ✅ QR is fresh — scan now! ({55 - qrAge}s remaining)
                                     </div>
                                 )}
-                                <ol style={{ margin: 0, paddingLeft: '20px', color: '#64748B', fontSize: '0.875rem', lineHeight: 1.6, fontWeight: 500 }}>
+                                <ol style={{ margin: 0, paddingLeft: '20px', color: '#64748B', fontSize: '0.875rem', lineHeight: 1.8, fontWeight: 500 }}>
                                     <li>Open WhatsApp on your phone</li>
-                                    <li>Tap Menu or Settings and select <b>Linked Devices</b></li>
-                                    <li>Tap on <b>Link a Device</b></li>
-                                    <li>Scan this QR code with your phone</li>
+                                    <li>Tap Menu → <b>Linked Devices</b></li>
+                                    <li>Tap <b>Link a Device</b></li>
+                                    <li>Point camera at the QR code above</li>
                                 </ol>
                             </div>
-                        </>
+                        </div>
                     )}
                     {waStatus === 'CONNECTED' && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '10px', flexWrap: 'wrap' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22C55E' }}>
-                                    <CheckCircle size={24} />
+                                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22C55E', flexShrink: 0 }}>
+                                    <CheckCircle size={22} />
                                 </div>
                                 <div>
-                                    <div style={{ fontWeight: 600, fontSize: '1.05rem', color: '#1E293B' }}>WhatsApp Connected Successfully</div>
-                                    <div style={{ fontSize: '0.85rem', color: '#64748B', marginTop: '2px' }}>Account: {waInfo?.pushname || 'Doctor'} ({waInfo?.wid?.user})</div>
+                                    <div style={{ fontWeight: 600, fontSize: '1rem', color: '#1E293B' }}>WhatsApp Connected ✅</div>
+                                    <div style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '2px' }}>Account: {waInfo?.pushname || 'Doctor'} ({waInfo?.wid?.user})</div>
                                 </div>
                             </div>
-                            <button onClick={handleWaLogout} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', background: '#FFF1F2', color: '#EF4444', border: '1px solid #FECACA', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
+                            <button onClick={handleWaLogout} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', background: '#FFF1F2', color: '#EF4444', border: '1px solid #FECACA', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
                                 <PowerOff size={15} /> Disconnect
                             </button>
                         </div>
