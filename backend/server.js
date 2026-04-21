@@ -13,7 +13,8 @@ app.use(express.json());
 const upload = multer({ dest: 'uploads/' });
 
 let qrCodeData = null;
-let clientStatus = 'STARTING'; // STARTING, WAITING_FOR_SCAN, CONNECTED, DISCONNECTED
+let clientStatus = 'STARTING'; // STARTING, WAITING_FOR_SCAN, AUTHENTICATING, SYNCING, CONNECTED, DISCONNECTED
+let syncPercent = 0;
 
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './whatsapp-session' }),
@@ -29,6 +30,17 @@ client.on('qr', async (qr) => {
     console.log('QR Code generated.');
 });
 
+client.on('authenticated', () => {
+    clientStatus = 'AUTHENTICATING';
+    console.log('WhatsApp Client authenticated!');
+});
+
+client.on('loading_screen', (percent, message) => {
+    clientStatus = 'SYNCING';
+    syncPercent = percent;
+    console.log(`Syncing... ${percent}%`);
+});
+
 client.on('ready', () => {
     clientStatus = 'CONNECTED';
     qrCodeData = null;
@@ -38,6 +50,7 @@ client.on('ready', () => {
 client.on('disconnected', () => {
     clientStatus = 'DISCONNECTED';
     qrCodeData = null;
+    syncPercent = 0;
     console.log('WhatsApp Client disconnected!');
     client.initialize(); 
 });
@@ -48,13 +61,25 @@ client.initialize().catch(err => {
 
 // Routes
 app.get('/api/whatsapp/status', (req, res) => {
-    res.json({ status: clientStatus, qr: qrCodeData, info: clientStatus === 'CONNECTED' ? client.info : null });
+    res.json({ 
+        status: clientStatus, 
+        qr: qrCodeData, 
+        percent: syncPercent,
+        info: clientStatus === 'CONNECTED' ? client.info : null 
+    });
 });
 
 app.post('/api/whatsapp/logout', async (req, res) => {
     try {
         if (clientStatus === 'CONNECTED') {
             await client.logout();
+        } else {
+            await client.destroy();
+            const sessionPath = path.join(__dirname, 'whatsapp-session');
+            if (fs.existsSync(sessionPath)) {
+                fs.rmSync(sessionPath, { recursive: true, force: true });
+            }
+            client.initialize();
         }
         clientStatus = 'DISCONNECTED';
         qrCodeData = null;

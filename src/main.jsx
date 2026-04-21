@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import './styles/global.css'
 
@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children }) => {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -36,7 +36,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/prescription/:id" element={<ProtectedRoute><PrescriptionPreview /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </AuthProvider>
   </React.StrictMode>,
 )
