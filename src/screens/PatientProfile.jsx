@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Phone, Calendar, Plus, Clock, FileText } from 'lucide-react'
+import { ArrowLeft, Phone, Calendar, ClipboardList, MapPin, Search } from 'lucide-react'
 import Layout from '../components/Layout'
-import Button from '../components/Button'
 import { storage } from '../services/storage'
 
 export default function PatientProfile() {
@@ -15,7 +14,7 @@ export default function PatientProfile() {
         const p = storage.getPatient(id)
         if (p) {
             setPatient(p)
-            setHistory(storage.getConsultations(id))
+            setHistory(storage.getConsultations().filter(c => c.patientId === id).sort((a, b) => b.date - a.date))
         } else {
             navigate('/patients')
         }
@@ -23,84 +22,110 @@ export default function PatientProfile() {
 
     if (!patient) return null
 
+    const handleNewRx = () => {
+        sessionStorage.setItem('prefill_phone', patient.phone || '')
+        navigate('/new-rx')
+    }
+
     return (
         <Layout>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
-                <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: 0, marginRight: '16px', cursor: 'pointer', color: 'var(--text-main)' }}>
-                    <ArrowLeft size={24} />
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <button onClick={() => navigate('/patients')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}>
+                        <ArrowLeft size={22} />
+                    </button>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#1E293B' }}>Patient Profile</h1>
+                </div>
+                <button onClick={handleNewRx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '8px', background: '#2563EB', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}>
+                    <ClipboardList size={16} /> New Prescription
                 </button>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Patient Stats</h1>
             </div>
 
-            <div className="card animate-fade-in" style={{ padding: '24px', background: 'white' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>{patient.name}</h2>
-                        <div style={{ color: 'var(--text-secondary)', marginTop: '4px', fontSize: '1rem' }}>
-                            {patient.gender}, {patient.age} years
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 2fr', gap: '20px' }}>
+                
+                {/* Left Col - Patient Details */}
+                <div style={{ background: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #E8EDF2', alignSelf: 'start' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                        <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.5rem', color: '#2563EB', flexShrink: 0 }}>
+                            {patient.name?.charAt(0).toUpperCase()}
                         </div>
-                        {patient.phone && (
-                            <a href={`tel:${patient.phone}`} style={{ display: 'flex', alignItems: 'center', marginTop: '12px', color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
-                                <div style={{ padding: '8px', background: 'var(--primary-soft)', borderRadius: '8px', marginRight: '8px' }}>
-                                    <Phone size={16} />
-                                </div>
-                                {patient.phone}
-                            </a>
-                        )}
+                        <div>
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#1E293B' }}>{patient.name}</h2>
+                            <div style={{ color: '#64748B', fontSize: '0.9rem', marginTop: '2px' }}>{patient.age} years, {patient.gender}</div>
+                        </div>
                     </div>
-                    <div style={{
-                        width: '80px', height: '80px', borderRadius: '24px',
-                        background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '2rem', fontWeight: 700, color: 'var(--primary)'
-                    }}>
-                        {patient.name.charAt(0)}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <Phone size={16} color="#94A3B8" style={{ marginTop: '2px' }} />
+                            <div>
+                                <div style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Phone Number</div>
+                                <div style={{ fontSize: '0.95rem', color: '#1E293B', fontWeight: 500, marginTop: '2px' }}>{patient.phone || 'Not provided'}</div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <MapPin size={16} color="#94A3B8" style={{ marginTop: '2px' }} />
+                            <div>
+                                <div style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Address</div>
+                                <div style={{ fontSize: '0.95rem', color: '#1E293B', fontWeight: 500, marginTop: '2px', lineHeight: 1.4 }}>{patient.address || 'Not provided'}</div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <Calendar size={16} color="#94A3B8" style={{ marginTop: '2px' }} />
+                            <div>
+                                <div style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Registered On</div>
+                                <div style={{ fontSize: '0.95rem', color: '#1E293B', fontWeight: 500, marginTop: '2px' }}>{patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : 'Unknown'}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                {patient.notes && (
-                    <div style={{ marginTop: '20px', padding: '16px', background: 'var(--bg-main)', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem', borderLeft: '3px solid var(--text-light)' }}>
-                        <strong style={{ display: 'block', marginBottom: '4px', color: 'var(--text-main)' }}>Notes:</strong> {patient.notes}
-                    </div>
-                )}
-            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', marginTop: '32px' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Visit History</h3>
-                <span className="badge badge-blue">{history.length} Visits</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '80px' }}>
-                {history.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-light)' }}>
-                        <Clock size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                        <p>No previous consultations</p>
-                    </div>
-                ) : (
-                    history.map(visit => (
-                        <div key={visit.id} className="card" onClick={() => navigate(`/prescription/${visit.id}`)} style={{ marginBottom: 0, cursor: 'pointer' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', color: 'var(--primary)' }}>
-                                    <Calendar size={16} style={{ marginRight: '8px' }} />
-                                    {new Date(visit.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                </div>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>
-                                    {new Date(visit.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                            </div>
-                            <div style={{ fontWeight: 600, marginBottom: '6px', fontSize: '1.1rem' }}>{visit.diagnosis || 'General Checkup'}</div>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
-                                <FileText size={14} style={{ marginRight: '6px' }} />
-                                {visit.medicines?.length > 0 ? `${visit.medicines.length} medicines prescribed` : 'No medicines'}
-                            </div>
+                {/* Right Col - Visit History */}
+                <div style={{ background: 'white', borderRadius: '12px', padding: '24px', border: '1px solid #E8EDF2' }}>
+                    <h3 style={{ margin: '0 0 20px', fontSize: '1.1rem', fontWeight: 700, color: '#1E293B' }}>Consultation History</h3>
+                    
+                    {history.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '60px 0', color: '#94A3B8' }}>
+                            <Search size={40} style={{ opacity: 0.2, marginBottom: '16px' }} />
+                            <div style={{ fontSize: '0.95rem', fontWeight: 500 }}>No consultations yet</div>
+                            <div style={{ fontSize: '0.85rem', marginTop: '4px' }}>Once a prescription is created, it will appear here.</div>
                         </div>
-                    ))
-                )}
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {history.map(visit => (
+                                <div key={visit.id} onClick={() => navigate(`/prescription/${visit.id}`)} style={{ padding: '16px', borderRadius: '8px', border: '1px solid #F1F5F9', cursor: 'pointer', transition: 'all 0.15s ease', background: '#F8FAFC' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                        <div style={{ fontWeight: 600, fontSize: '1rem', color: '#1E293B' }}>{visit.diagnosis || 'General Checkup'}</div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>{new Date(visit.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{new Date(visit.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', color: '#64748B' }}>
+                                        {visit.medicines?.length > 0 ? (
+                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22C55E' }} />
+                                                {visit.medicines.length} medicine{visit.medicines.length !== 1 ? 's' : ''} prescribed
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#94A3B8' }} />
+                                                No medicines prescribed
+                                            </div>
+                                        )}
+                                        {visit.followUp && (
+                                            <div style={{ marginTop: '6px', color: '#F59E0B', fontWeight: 500, fontSize: '0.8rem' }}>
+                                                Follow up: {new Date(visit.followUp).toLocaleDateString()}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
-
-            <button className="fab" onClick={() => navigate(`/consultation/${patient.id}`)}>
-                <Plus size={28} />
-            </button>
-
         </Layout>
     )
 }

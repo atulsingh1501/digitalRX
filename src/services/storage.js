@@ -36,16 +36,18 @@ export const storage = {
 
     savePatient: (patient) => {
         const patients = storage.getPatients()
-        const existingIndex = patients.findIndex(p => p.id === patient.id)
+        // Ensure patient always has a stable ID before operating
+        const patientWithId = patient.id ? patient : { ...patient, id: crypto.randomUUID() }
+        const existingIndex = patients.findIndex(p => p.id === patientWithId.id)
 
         if (existingIndex >= 0) {
-            patients[existingIndex] = { ...patients[existingIndex], ...patient, updatedAt: Date.now() }
+            patients[existingIndex] = { ...patients[existingIndex], ...patientWithId, updatedAt: Date.now() }
         } else {
-            patients.unshift({ ...patient, id: crypto.randomUUID(), createdAt: Date.now() })
+            patients.unshift({ ...patientWithId, createdAt: patientWithId.createdAt || Date.now() })
         }
 
         localStorage.setItem(KEYS.PATIENTS, JSON.stringify(patients))
-        return patient.id || patients[0].id
+        return patientWithId.id
     },
 
     getPatient: (id) => {
@@ -83,7 +85,17 @@ export const storage = {
     // Clinic Info
     getClinicInfo: () => {
         const data = localStorage.getItem(KEYS.CLINIC)
-        return data ? JSON.parse(data) : { name: 'My Clinic', doctor: 'Dr. Smith' }
+        return data ? JSON.parse(data) : {
+            name: 'My Clinic',
+            doctor: 'Dr. Smith',
+            phone: '',
+            whatsapp: '',
+            qualification: 'MBBS, MD',
+            regNumber: '',
+            specialization: 'General Physician',
+            address: '',
+            email: ''
+        }
     },
 
     saveClinicInfo: (info) => {

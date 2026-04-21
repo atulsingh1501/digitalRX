@@ -11,6 +11,7 @@ import Patients from './screens/Patients'
 import AddPatient from './screens/AddPatient'
 import PatientProfile from './screens/PatientProfile'
 import Consultation from './screens/Consultation'
+import NewRx from './screens/NewRx'
 import PrescriptionPreview from './screens/PrescriptionPreview'
 import Settings from './screens/Settings'
 
@@ -31,6 +32,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/patients/new" element={<ProtectedRoute><AddPatient /></ProtectedRoute>} />
           <Route path="/patients/:id" element={<ProtectedRoute><PatientProfile /></ProtectedRoute>} />
           <Route path="/consultation/:id" element={<ProtectedRoute><Consultation /></ProtectedRoute>} />
+          <Route path="/new-rx" element={<ProtectedRoute><NewRx /></ProtectedRoute>} />
           <Route path="/prescription/:id" element={<ProtectedRoute><PrescriptionPreview /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         </Routes>
