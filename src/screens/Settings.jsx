@@ -10,9 +10,10 @@ export default function Settings() {
         name: '', phone: '', address: '', email: '', whatsapp: ''
     })
 
-    const [waStatus, setWaStatus] = useState('LOADING') // LOADING, DISCONNECTED, WAITING_FOR_SCAN, CONNECTED, ERROR
+    const [waStatus, setWaStatus] = useState('LOADING') // LOADING, DISCONNECTED, WAITING_FOR_SCAN, AUTHENTICATING, SYNCING, CONNECTED, ERROR
     const [waQr, setWaQr] = useState(null)
     const [waInfo, setWaInfo] = useState(null)
+    const [waPercent, setWaPercent] = useState(0)
     useEffect(() => {
         const info = storage.getClinicInfo()
         setClinic(prev => ({ ...prev, ...info }))
@@ -31,6 +32,7 @@ export default function Settings() {
             setWaStatus(data.status)
             setWaQr(data.qr)
             setWaInfo(data.info)
+            setWaPercent(data.percent || 0)
         } catch (err) {
             setWaStatus('ERROR')
         }
@@ -93,6 +95,16 @@ export default function Settings() {
                     {(waStatus === 'STARTING' || waStatus === 'DISCONNECTED') && !waQr && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '0.9rem', fontWeight: 500 }}>
                             <Loader size={18} className="animate-spin" /> Starting WhatsApp Core... This can take up to 20 seconds.
+                        </div>
+                    )}
+                    {waStatus === 'AUTHENTICATING' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3B82F6', fontSize: '0.9rem', fontWeight: 500 }}>
+                            <Loader size={18} className="animate-spin" /> Linked successfully! Authenticating...
+                        </div>
+                    )}
+                    {waStatus === 'SYNCING' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#2563EB', fontSize: '0.9rem', fontWeight: 500 }}>
+                            <Loader size={18} className="animate-spin" /> Syncing messages from phone... {waPercent}% (This may take a minute)
                         </div>
                     )}
                     {waStatus === 'WAITING_FOR_SCAN' && waQr && (

@@ -1,94 +1,238 @@
-<div align="center">
-  
-# 📘 Digital Rx: Clinic Management & Automated Prescription System
+# 💊 Digital Rx — Clinic Management & WhatsApp Prescription System
 
-A modern, lightning-fast Full-Stack Medical Application designed to digitize local clinics. It replaces paper prescriptions with professional A4 printable PDFs and features an automated, headless WhatsApp integration to dispatch digital prescriptions securely directly to patients' phones.
-
-**[Features](#-key-features) • [Tech Stack](#-tech-stack) • [Installation](#%EF%B8%8F-installation--setup) • [Architecture](#%EF%B8%8F-architecture)**
-
-</div>
+A professional, offline-first clinic management application built for doctors. Create digital prescriptions, manage patients, track follow-ups, and silently send prescriptions via WhatsApp — all from a single clean interface.
 
 ---
 
-## 🚀 Key Features
+## ✨ Features
 
-* **Instant Digital Prescriptions (A4 Print-Ready):** Rapidly draft prescriptions with auto-complete medicine databases, customizable dosages, and durations. Generates pixel-perfect A4 PDFs on the fly using `html2canvas` and `jsPDF`.
-* **Silent WhatsApp Automation:** No more manual forwarding! Thanks to a custom Node.js/Puppeteer backend, doctors scan a QR code once to link their WhatsApp. From then on, generating an Rx dispatches the PDF silently to the patient's phone via `whatsapp-web.js` in milliseconds—without ever opening the WhatsApp app.
-* **1-Click Follow-Up Reminders:** The intelligent dashboard flags patients who missed or have scheduled follow-up dates. Doctors can dispatch a "Gentle Reminder" text to their WhatsApp with a single button click.
-* **Intelligent Patient Demographics Lookup:** Entering a patient's phone number instantly auto-fills their demographic data (Name, Age, Gender, Address) across the system.
-* **Offline-First Resilience:** Clinics often suffer from poor Wi-Fi. The frontend strictly employs a sophisticated caching and `localStorage` architecture, ensuring patient history, old consultations, and settings remain perfectly intact and instantly loadable offline.
-* **Premium Dashboard Analytics:** View daily patient throughput, unaddressed follow-ups, and month-over-month clinic growth analytics visualized on a sleek UI utilizing Lucide React iconography.
-* **Smart QR Branding:** The doctor's public WhatsApp number is auto-generated into a dynamic, scannable QR Code printed on the footer of every prescription.
-
----
-
-## 🛠 Tech Stack
-
-### **Frontend Interface**
-* **React 19** & **Vite**: For extremely fast HMR and optimized production bundles.
-* **React Router DOM v7**: Seamless SPA routing without page reloads.
-* **CSS3 / Inline Styles**: Custom UI system mirroring premium glassmorphism and modern medical design languages. No heavy CSS libraries; pure lightweight rendering.
-* **Libraries**: `lucide-react` (iconography), `qrcode.react` (QR generation), `jspdf` & `html2canvas` (client-side PDF compilation).
-
-### **Backend & Automation**
-* **Node.js** & **Express**: Lightweight REST API to handle the local orchestration.
-* **whatsapp-web.js**: Headless instance of WhatsApp Web wrapping Puppeteer. Bypasses the need for expensive Meta Business API keys while securing exactly the same functionality.
-* **Multer**: For cleanly processing binary PDF blobs forwarded by the frontend.
+| Feature | Description |
+|---|---|
+| 📋 New Prescription (Rx) | Create prescriptions with medicines, dosages, diagnosis, and advice |
+| 👤 Patient Management | Add, search, and view full patient history and past consultations |
+| 📱 Silent WhatsApp Delivery | Send prescriptions as PDF directly to the patient's WhatsApp |
+| 🔔 Follow-up Reminders | Dashboard shows upcoming follow-ups with one-click WhatsApp reminder |
+| 🖨️ PDF Export & Print | Generate and print professional clinic prescriptions as PDF |
+| 📊 Dashboard Analytics | Today's patients, monthly growth, pending follow-ups at a glance |
+| ⚙️ Clinic Settings | Customizable doctor profile, clinic details, and WhatsApp integration |
+| 💾 Offline-First Storage | All data stored locally in the browser using `localStorage` |
 
 ---
 
-## ⚙️ Installation & Setup
+## 🏗️ Project Architecture
 
-Because this is a hybrid full-stack application relying on local hardware for the WhatsApp orchestration, you need to run both the Frontend and the Backend concurrently.
+```
+DOCTOR-APP-master/
+├── backend/                  # Node.js/Express backend (WhatsApp bridge)
+│   ├── server.js             # Core server — WhatsApp client & REST API
+│   ├── package.json
+│   └── uploads/              # Temp folder for PDF uploads (auto-generated)
+│
+├── src/                      # React frontend (Vite)
+│   ├── screens/
+│   │   ├── Dashboard.jsx     # Stats, recent patients, follow-up reminders
+│   │   ├── Patients.jsx      # Patient list & search
+│   │   ├── AddPatient.jsx    # Add new patient form
+│   │   ├── PatientProfile.jsx# Full patient history
+│   │   ├── NewRx.jsx         # Create new prescription
+│   │   ├── Consultation.jsx  # Detailed consultation view
+│   │   ├── PrescriptionPreview.jsx # PDF preview & send via WhatsApp
+│   │   ├── Settings.jsx      # Clinic profile + WhatsApp QR linking
+│   │   └── Login.jsx         # Doctor PIN login screen
+│   ├── components/
+│   │   └── Layout.jsx        # Sidebar navigation wrapper
+│   ├── services/
+│   │   └── storage.js        # localStorage abstraction layer
+│   └── config.js             # API URL configuration
+│
+├── electron.cjs              # Electron wrapper for desktop app
+├── start-backend.bat         # One-click backend launcher (Windows)
+├── vite.config.js
+└── package.json
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) v18 or higher
+- npm (comes with Node.js)
+- Google Chrome installed (required by whatsapp-web.js for the headless browser)
+
+---
 
 ### 1. Clone the Repository
+
 ```bash
-git clone https://github.com/yourusername/digitalrx.git
-cd digitalrx
+git clone https://github.com/atulsingh1501/digitalRX.git
+cd digitalRX
 ```
 
-### 2. Frontend Setup (React/Vite)
+---
+
+### 2. Install Frontend Dependencies
+
 ```bash
 npm install
-npm run dev
 ```
-*The frontend will boot up blazingly fast at `http://localhost:5173`*
 
-### 3. Backend Setup (Node.js WhatsApp Engine)
-Open a separate terminal window:
+---
+
+### 3. Install Backend Dependencies
+
 ```bash
 cd backend
 npm install
+cd ..
+```
+
+---
+
+### 4. Run the Application
+
+You need to run **both** the backend and frontend simultaneously.
+
+#### Option A — Two separate terminals (Recommended)
+
+**Terminal 1 — Backend:**
+```bash
+cd backend
 node server.js
 ```
-*Alternatively, simply double-click the included `start-backend.bat` script at the root directory.*
+
+**Terminal 2 — Frontend:**
+```bash
+npm run dev
+```
+
+#### Option B — Windows batch file
+
+Double-click `start-backend.bat` to launch the backend, then run `npm run dev` in a terminal.
 
 ---
 
-## 📖 Usage Walkthrough (For Recruiters)
+### 5. Open the App
 
-1. **Authentication & Core Setup**:
-   - Begin by navigating to **Settings**. Fill in the Doctor's clinic details.
-   - You will see a live **"Backend WhatsApp Connection"** panel polling the local Node server. A QR Code will appear. Scan this via the "Linked Devices" page on your physical WhatsApp application to authenticate the headless server session.
-2. **Patient Onboarding**:
-   - Navigate to the **Dashboard** or **Patients** tab and onboard a dummy profile.
-3. **Drafting an Rx**:
-   - Click the green **New Prescription** button. Type in the phone number to trigger the auto-population engine.
-   - Enter Chief Complaints, Diagnosis, and map out the Medicine Table.
-4. **The Magic (Silent WhatsApp Dispatch)**:
-   - When finished, hit **"Send WhatsApp"**. The frontend compiles the DOM into an A4 canvas, parses it as a JS Blob, and POSTs it via Multipart-Form to the Express Backend.
-   - The user interface immediately reports "Success!" while the server silently routes the payload to the provided phone number.
+Navigate to: **[http://localhost:5173](http://localhost:5173)**
 
 ---
 
-## 👨‍💻 Engineering Decisions
+## 📱 WhatsApp Setup
 
-* **Why localStorage over MongoDB?** 
-  Targeting independent, rural, or highly-localized medical practitioners means dealing with fragile internet connections. By storing the primary source-of-truth locally in the browser's persistent storage, read speeds are instantaneous and data privacy is absolutely maximized; zero patient health records (PHI) ever hit a third-party cloud.
-* **Why whatsapp-web.js instead of Meta Cloud API?**
-  The official Meta API costs money per message loop and requires corporate business verification, which is overwhelmingly tedious for standard clinical practitioners. By containerizing a headless Chromium browser instance natively, the doctor's standard, pre-existing WhatsApp number is democratized as a powerful broadcasting API with zero setup costs.
+The WhatsApp integration uses `whatsapp-web.js` to link the doctor's WhatsApp account and send messages silently in the background (no WhatsApp Web window needed).
 
-<br />
-<div align="center">
-  <b>Built specifically to bridge the friction between modern healthtech APIs and the local clinic experience.</b>
-</div>
+1. Start the backend server (`node server.js`)
+2. Go to **Settings → Backend WhatsApp Connection** in the app
+3. A QR code will appear — scan it with your WhatsApp phone
+4. After scanning, wait for the **"Syncing messages..."** phase to complete
+5. Once connected, the app will show **"WhatsApp Connected Successfully"**
+
+> ⚠️ **Note:** The first-time sync can take 30–90 seconds depending on your chat history size. Subsequent startups are instant as the session is cached.
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+The app uses a single optional environment variable.
+
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_BACKEND_URL` | `http://127.0.0.1:3001` | URL of the backend server |
+
+For **local development**, no `.env` file is needed. The frontend will automatically connect to `http://127.0.0.1:3001`.
+
+For **cloud deployment** (e.g., Vercel frontend + Render backend), copy `.env.example` to `.env` and set:
+```env
+VITE_BACKEND_URL=https://your-live-backend-url.up.railway.app
+```
+
+---
+
+## 🔌 Backend API Reference
+
+The backend runs on `http://localhost:3001` by default.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/whatsapp/status` | Returns current WhatsApp connection status & QR code |
+| `POST` | `/api/whatsapp/logout` | Disconnects and resets the WhatsApp session |
+| `POST` | `/api/whatsapp/send-message` | Sends a plain text WhatsApp message |
+| `POST` | `/api/whatsapp/send-pdf` | Sends a PDF file via WhatsApp |
+
+### WhatsApp Status Values
+
+| Status | Meaning |
+|---|---|
+| `STARTING` | Client is initializing |
+| `WAITING_FOR_SCAN` | QR code is ready, waiting for phone scan |
+| `AUTHENTICATING` | QR scanned, verifying credentials |
+| `SYNCING` | Downloading message history (shows `percent`) |
+| `CONNECTED` | Fully linked and ready to send |
+| `DISCONNECTED` | Session was logged out or expired |
+
+---
+
+## 🖥️ Desktop App (Electron)
+
+The app can also be run as a standalone Windows desktop application using Electron.
+
+```bash
+# Development mode (Electron window with live reload)
+npm run electron:dev
+
+# Build installable .exe
+npm run electron:package
+```
+
+The output installer will be placed in the `dist_electron/` folder.
+
+---
+
+## 📦 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19, React Router v7, Vite |
+| **Styling** | Vanilla CSS (inline styles) |
+| **Icons** | Lucide React |
+| **PDF** | jsPDF + html2canvas |
+| **Backend** | Node.js, Express.js |
+| **WhatsApp** | whatsapp-web.js (Puppeteer-based) |
+| **Storage** | Browser localStorage |
+| **Desktop** | Electron |
+
+---
+
+## 📁 Data Storage
+
+All patient and consultation data is stored in the **browser's `localStorage`**. No external database is required.
+
+- Patients: stored as JSON under the key `dr_patients`
+- Consultations: stored as JSON under the key `dr_consultations`
+- Clinic Info: stored as JSON under the key `dr_clinic`
+
+> Use **Settings → Reset App Data** to clear all stored data from the device.
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the **ISC License**.
+
+---
+
+*Built with ❤️ for busy doctors who deserve better tools.*
