@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 backend/whatsapp-session
+backend/wa-session
 backend/uploads
 backend/.wwebjs_cache/
 
