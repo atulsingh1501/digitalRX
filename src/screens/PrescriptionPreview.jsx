@@ -14,6 +14,8 @@ export default function PrescriptionPreview() {
     const [clinic, setClinic] = useState({})
     const [sendingWa, setSendingWa] = useState(false)
 
+    const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:3001'
+
     useEffect(() => {
         const consultations = storage.getConsultations()
         const consult = consultations.find(c => c.id === id)
@@ -66,7 +68,7 @@ export default function PrescriptionPreview() {
             formData.append('filename', fileName)
             formData.append('message', `Hello ${patient.name},\n\nYour prescription from ${clinic.name || 'the clinic'} has been generated. Please find the PDF attached.\n\n- ${clinic.doctor || 'Your Doctor'}`)
 
-            const res = await fetch('http://127.0.0.1:3001/api/whatsapp/send-pdf', {
+            const res = await fetch(`${API_URL}/api/whatsapp/send-pdf`, {
                 method: 'POST',
                 body: formData
             })

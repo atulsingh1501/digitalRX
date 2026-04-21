@@ -13,6 +13,8 @@ export default function Settings() {
     const [waQr, setWaQr] = useState(null)
     const [waInfo, setWaInfo] = useState(null)
 
+    const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:3001'
+
     useEffect(() => {
         const info = storage.getClinicInfo()
         setClinic(prev => ({ ...prev, ...info }))
@@ -26,7 +28,7 @@ export default function Settings() {
 
     const checkWaStatus = async () => {
         try {
-            const res = await fetch('http://127.0.0.1:3001/api/whatsapp/status')
+            const res = await fetch(`${API_URL}/api/whatsapp/status`)
             const data = await res.json()
             setWaStatus(data.status)
             setWaQr(data.qr)
@@ -39,7 +41,7 @@ export default function Settings() {
     const handleWaLogout = async () => {
         try {
             setWaStatus('LOADING')
-            await fetch('http://127.0.0.1:3001/api/whatsapp/logout', { method: 'POST' })
+            await fetch(`${API_URL}/api/whatsapp/logout`, { method: 'POST' })
             checkWaStatus()
         } catch (err) {
             console.error(err)

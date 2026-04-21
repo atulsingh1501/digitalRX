@@ -9,6 +9,8 @@ export default function Dashboard() {
     const patients = storage.getPatients()
     const allConsults = storage.getConsultations()
 
+    const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:3001'
+
     const today = new Date()
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
     const todayEnd = todayStart + 86400000
@@ -43,7 +45,7 @@ export default function Dashboard() {
             const msgDate = new Date(consult.followUp).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })
             const message = `Hello ${patient.name},\n\nThis is a gentle reminder from ${clinic.name || 'our clinic'} regarding your pending follow-up visit scheduled for ${msgDate}.\n\nPlease visit the clinic or reply to this message to reschedule.\n\n- ${clinic.doctor || 'Your Doctor'}`
             
-            const res = await fetch('http://127.0.0.1:3001/api/whatsapp/send-message', {
+            const res = await fetch(`${API_URL}/api/whatsapp/send-message`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone: patient.phone, message })
