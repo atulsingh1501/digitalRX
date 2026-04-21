@@ -105,6 +105,26 @@ export default function Settings() {
                             Could not connect to backend server. Make sure `node server.js` is running in the `backend/` folder!
                         </div>
                     )}
+                    {waStatus === 'NOT_AVAILABLE' && (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', width: '100%' }}>
+                            <div style={{ fontSize: '2rem', lineHeight: 1 }}>☁️</div>
+                            <div>
+                                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1E293B', marginBottom: '4px' }}>
+                                    WhatsApp not available in Cloud/Demo mode
+                                </div>
+                                <div style={{ fontSize: '0.85rem', color: '#64748B', lineHeight: 1.6 }}>
+                                    The live demo runs on a cloud server that cannot run WhatsApp Web (requires a local Chrome browser & active phone session).
+                                    <br />
+                                    To use WhatsApp features, <strong>run the app locally</strong> using the instructions in the README.
+                                </div>
+                                <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ padding: '4px 10px', background: '#EFF6FF', color: '#2563EB', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600 }}>✅ Medicine Search — Available</span>
+                                    <span style={{ padding: '4px 10px', background: '#EFF6FF', color: '#2563EB', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600 }}>✅ PDF Generation — Available</span>
+                                    <span style={{ padding: '4px 10px', background: '#FFF1F2', color: '#EF4444', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600 }}>❌ WhatsApp Send — Local only</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {(waStatus === 'STARTING' || waStatus === 'DISCONNECTED') && !waQr && (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '0.9rem', fontWeight: 500 }}>
