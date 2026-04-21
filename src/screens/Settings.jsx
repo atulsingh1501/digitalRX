@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Save, Trash2, Database, Smartphone, Loader, CheckCircle, PowerOff } from 'lucide-react'
+import { Save, Trash2, Database, Smartphone, Loader, CheckCircle, PowerOff, RefreshCw } from 'lucide-react'
 import Layout from '../components/Layout'
 import { storage } from '../services/storage'
 import { API_URL } from '../config'
@@ -48,6 +48,19 @@ export default function Settings() {
         }
     }
 
+    const handleForceRestart = async () => {
+        try {
+            setWaStatus('RESTARTING')
+            setWaQr(null)
+            await fetch(`${API_URL}/api/whatsapp/restart`, { method: 'POST' })
+            // Poll until new QR appears
+            setTimeout(checkWaStatus, 3000)
+        } catch (err) {
+            console.error(err)
+            setWaStatus('ERROR')
+        }
+    }
+
     const handleSave = () => {
         storage.saveClinicInfo(clinic)
         alert('Settings saved!')
@@ -93,8 +106,18 @@ export default function Settings() {
                         </div>
                     )}
                     {(waStatus === 'STARTING' || waStatus === 'DISCONNECTED') && !waQr && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '0.9rem', fontWeight: 500 }}>
-                            <Loader size={18} className="animate-spin" /> Starting WhatsApp Core... This can take up to 20 seconds.
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '0.9rem', fontWeight: 500 }}>
+                                <Loader size={18} className="animate-spin" /> Starting WhatsApp Core... This can take up to 20 seconds.
+                            </div>
+                            <button onClick={handleForceRestart} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', background: '#FFF7ED', color: '#EA580C', border: '1px solid #FED7AA', cursor: 'pointer', fontWeight: 600, fontSize: '0.82rem', flexShrink: 0 }}>
+                                <RefreshCw size={14} /> Force Restart
+                            </button>
+                        </div>
+                    )}
+                    {waStatus === 'RESTARTING' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#EA580C', fontSize: '0.9rem', fontWeight: 500 }}>
+                            <Loader size={18} className="animate-spin" /> Restarting WhatsApp Core... A new QR will appear shortly.
                         </div>
                     )}
                     {waStatus === 'AUTHENTICATING' && (
