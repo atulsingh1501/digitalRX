@@ -138,6 +138,26 @@ function createAndInitClient() {
 // ─── Boot ────────────────────────────────────────────────────────────────────
 createAndInitClient();
 
+// ─── Medicine Database ────────────────────────────────────────────────────────
+const MEDICINES = JSON.parse(fs.readFileSync(path.join(__dirname, 'medicines.json'), 'utf-8'));
+
+// Search medicines: /api/medicines/search?q=para
+app.get('/api/medicines/search', (req, res) => {
+    const q = (req.query.q || '').toLowerCase().trim();
+    if (!q || q.length < 2) return res.json([]);
+    const results = MEDICINES.filter(m =>
+        m.name.toLowerCase().includes(q) ||
+        m.category.toLowerCase().includes(q)
+    ).slice(0, 20); // max 20 results
+    res.json(results);
+});
+
+// Get all categories
+app.get('/api/medicines/categories', (req, res) => {
+    const cats = [...new Set(MEDICINES.map(m => m.category))].sort();
+    res.json(cats);
+});
+
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.get('/api/whatsapp/status', (req, res) => {
     res.json({
