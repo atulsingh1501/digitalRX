@@ -1,5 +1,9 @@
 # 💊 Digital Rx — Clinic Management & WhatsApp Prescription System
 
+> **Created & Designed by [Atul Singh](https://github.com/atulsingh1501)**
+> 
+> ⚠️ This project is the original work of **Atul Singh**. If you fork or copy this project, you **must** credit the original author. Removing this attribution violates the spirit of open-source ethics.
+
 A professional, offline-first clinic management application built for doctors. Create digital prescriptions, manage patients, track follow-ups, and silently send prescriptions via WhatsApp — all from a single clean interface.
 
 ---
@@ -235,4 +239,21 @@ This project is licensed under the **ISC License**.
 
 ---
 
-*Built with ❤️ for busy doctors who deserve better tools.*
+## 👨‍💻 Author
+
+**Atul Singh**
+
+- 🐙 GitHub: [@atulsingh1501](https://github.com/atulsingh1501)
+- 📁 Repository: [github.com/atulsingh1501/digitalRX](https://github.com/atulsingh1501/digitalRX)
+
+---
+
+## 📜 Copyright
+
+© 2024–2026 **Atul Singh**. All rights reserved.
+
+This software was designed and built from scratch by **Atul Singh**. You are free to use this project for learning purposes, but **you must credit the original author** in any fork, copy, or derivative work. Claiming this project as your own original work is strictly prohibited.
+
+---
+
+*Built with ❤️ by **Atul Singh** — for busy doctors who deserve better tools.*
